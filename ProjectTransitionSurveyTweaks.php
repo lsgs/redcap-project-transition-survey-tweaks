@@ -85,6 +85,43 @@ class ProjectTransitionSurveyTweaks extends AbstractExternalModule
                             qs += '&'+name+'=1';
                         }
                     });
+
+                    $('input[name^=purpose]').each(function(){
+                        // purpose
+                        name = $(this).attr('name').replace('[','___').replace(']','');
+                        if ($(this).is(':checked')) {
+                            qs += '&'+name+'=1';
+                        }
+                    });
+
+                    $('input[name^=app_title]').each(function(){
+                        // Project title
+                        name = $(this).attr('name');
+                        value = $(this).val();
+                        qs += '&'+name+'='+value;
+                    });
+
+                    $('input[name^=project_pi_firstname]').each(function(){
+                        // PI Firstname
+                        name = $(this).attr('name');
+                        value = $(this).val();
+                        qs += '&'+name+'='+value;
+                    });
+
+                    $('input[name^=project_pi_lastname]').each(function(){
+                        // PI Lastname
+                        name = $(this).attr('name');
+                        value = $(this).val();
+                        qs += '&'+name+'='+value;
+                    });
+
+                    $('input[name^=project_pi_email]').each(function(){
+                        // PI Email Address
+                        name = $(this).attr('name');
+                        value = $(this).val();
+                        qs += '&'+name+'='+value;
+                    });
+
                     $('input[name=project_template_radio]:checked input[name=copyof]:checked').each(function(){
                         // template option, template used
                         name = $(this).attr('name');
