@@ -85,43 +85,6 @@ class ProjectTransitionSurveyTweaks extends AbstractExternalModule
                             qs += '&'+name+'=1';
                         }
                     });
-
-                    $('input[name^=purpose]').each(function(){
-                        // purpose
-                        name = $(this).attr('name').replace('[','___').replace(']','');
-                        if ($(this).is(':checked')) {
-                            qs += '&'+name+'=1';
-                        }
-                    });
-
-                    $('input[name^=app_title]').each(function(){
-                        // Project title
-                        name = $(this).attr('name');
-                        value = $(this).val();
-                        qs += '&'+name+'='+value;
-                    });
-
-                    $('input[name^=project_pi_firstname]').each(function(){
-                        // PI Firstname
-                        name = $(this).attr('name');
-                        value = $(this).val();
-                        qs += '&'+name+'='+value;
-                    });
-
-                    $('input[name^=project_pi_lastname]').each(function(){
-                        // PI Lastname
-                        name = $(this).attr('name');
-                        value = $(this).val();
-                        qs += '&'+name+'='+value;
-                    });
-
-                    $('input[name^=project_pi_email]').each(function(){
-                        // PI Email Address
-                        name = $(this).attr('name');
-                        value = $(this).val();
-                        qs += '&'+name+'='+value;
-                    });
-
                     $('input[name=project_template_radio]:checked input[name=copyof]:checked').each(function(){
                         // template option, template used
                         name = $(this).attr('name');
@@ -146,6 +109,47 @@ class ProjectTransitionSurveyTweaks extends AbstractExternalModule
      * Add JavaScript to "Copy Project" page to add entered values to "New Project" survey query string.
      */
     protected function copy_project($surveyUrl) { 
+        ?>
+        <script type='text/javascript'>
+            $(document).ready(function() {
+                console.log("document ready");
+                $('form[name=createdb]').find('button.btn-primaryrc').eq(0).removeAttr('onclick');
+                $('form[name=createdb]').find('button.btn-primaryrc').eq(0).on('click', function() {
+                    console.log("clicked");
+                    var surveyUrl = '<?=$surveyUrl?>';
+                    var qs = name = value = '';
+                    $('form[name=createdb]').find('.x-form-field').each(function(){
+                        // inputs/selects/textareas from form: add key/value pairs to query string
+                        name = $(this).attr('name');
+                        value = $(this).val();
+                        if (value.trim()!=='') {
+                            qs += '&'+name+'='+encodeURIComponent(value);
+                        }
+                    });
+                    $('input[name^=purpose_other]').each(function(){
+                        // research type checkboxes
+                        name = $(this).attr('name').replace('[','___').replace(']',''); // e.g. purpose_other[0] -> purpose_other___0
+                        if ($(this).is(':checked')) {
+                            qs += '&'+name+'=1';
+                        }
+                    });
+                    $('input[name=project_template_radio]:checked input[name=copyof]:checked').each(function(){
+                        // template option, template used
+                        name = $(this).attr('name');
+                        value = $(this).val();
+                        qs += '&'+name+'='+value;
+                    });
+
+                    if (setFieldsCreateFormChk()) { 
+                        showProgress(1); 
+                        console.log(surveyUrl+qs);
+                        openSurveyDialogIframe(surveyUrl+qs);
+                    }; 
+                    return false;
+                });
+            });
+        </script>
+        <?php
 
     }
 
