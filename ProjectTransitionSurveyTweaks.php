@@ -54,8 +54,9 @@ class ProjectTransitionSurveyTweaks extends AbstractExternalModule
             $hash = $row['hash'];
         }
         if (empty($hash)) return null;
-        
-        return APP_PATH_SURVEY_FULL."?s=$hash";
+        $user = (defined('USERID')) ? USERID : '';
+        $thisPid = (defined('PROJECT_ID')) ? PROJECT_ID : '';
+        return APP_PATH_SURVEY_FULL."?s=$hash&username=$user&project_id=$thisPid";
     }
 
     /**
