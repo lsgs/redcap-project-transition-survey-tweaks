@@ -13,11 +13,9 @@ Uses survey pre-filling to capture data entered about project, title, purpose et
 ## Configuration
 
 * Enable this module for all projects if you want to use the functionaity for copying a project or changing a project's status (not just create/request project).
-* No further configuration is required other than entering the survey project ids you wish to use on the Control Center/User Settings page.
+* No further configuration is required other than entering the survey project ids you wish to use on the Control Center > User Settings page.
 
-********************************************************************************
-## Project Transition Surveys
-
-[TODO] Provide basic starting points for transition surveys containing fields relevant to each transition.
+[Optional]
+* System-level setting to have transition surveys presented to superusers. REDCap's built-in behaviour is to not show surveys to superusers.
 
 ********************************************************************************

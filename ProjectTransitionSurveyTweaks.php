@@ -12,6 +12,8 @@ use ExternalModules\AbstractExternalModule;
 class ProjectTransitionSurveyTweaks extends AbstractExternalModule
 {
     public function redcap_every_page_top($project_id) {
+        if ($this->isNotRequired()) return;
+        global $Proj;
         $transitions = array();
         if (str_replace(APP_PATH_WEBROOT_PARENT, '', PAGE_FULL)=='index.php' && isset($_GET['action']) && $_GET['action']==='create') {
             $transitions[] = 'create_project'; // create or request a new project
@@ -19,11 +21,10 @@ class ProjectTransitionSurveyTweaks extends AbstractExternalModule
         } else if (PAGE == 'ProjectGeneral/copy_project_form.php') {
             $transitions[] = 'copy_project'; // copy a project
 
-        } else if (PAGE == 'ProjectSetup/index.php') {
-            $transitions[] = 'move_to_prod_status'; // move to production
+        } else if (PAGE == 'ProjectSetup/index.php' && $Proj->project['status']==0) {
+            $transitions[] = 'move_to_prod_status'; // move dev to production
 
         } else if (PAGE == 'ProjectSetup/other_functionality.php') {
-            global $Proj;
             $transitions[] = 'mark_completed'; // mark project completed
             if ($Proj->project['status'] > 0) {
                 $transitions[] = 'move_to_analysis_status'; // move from prod to analysis
@@ -36,6 +37,19 @@ class ProjectTransitionSurveyTweaks extends AbstractExternalModule
                 $this->$transition($surveyUrl);
             }
         }
+    }
+
+    /**
+     * isNotRequired()
+     * No user or current user is super user and system-level force option not enabled
+     * @return bool
+     */
+    protected function isNotRequired() {
+        $user = $this->getUser();
+        if (!isset($user)) return true;
+        $super = $user->isSuperUser();
+        $force = 1==$this->getSystemSetting('force-superuser');
+        return $super && !$force;
     }
 
     /**
@@ -55,7 +69,7 @@ class ProjectTransitionSurveyTweaks extends AbstractExternalModule
         }
         if (empty($hash)) return null;
         $user = (defined('USERID')) ? USERID : '';
-        $thisPid = (defined('PROJECT_ID')) ? PROJECT_ID : '';
+        $thisPid = (defined('PROJECT_ID') && $transition!=='copy_project') ? PROJECT_ID : ''; // project_id when copying gets set to pid of copy
         return APP_PATH_SURVEY_FULL."?s=$hash&username=$user&project_id=$thisPid";
     }
 
@@ -67,8 +81,14 @@ class ProjectTransitionSurveyTweaks extends AbstractExternalModule
         ?>
         <script type='text/javascript'>
             $(document).ready(function() {
+                /* Project Transition Survey Tweaks JavaScript */
                 $('form[name=createdb]').find('button.btn-primaryrc').eq(0).removeAttr('onclick');
                 $('form[name=createdb]').find('button.btn-primaryrc').eq(0).on('click', function() {
+                    if ($('#currenttitle').val() == $('#app_title').val()) {
+						simpleDialog('<?=\RCView::tt('copy_project_11')?>'); // Please change the title of the new project so that it is different from the original.
+						return false;
+					}
+
                     var surveyUrl = '<?=$surveyUrl?>';
                     var qs = name = value = '';
                     $('form[name=createdb]').find('.x-form-field').each(function(){
@@ -79,23 +99,22 @@ class ProjectTransitionSurveyTweaks extends AbstractExternalModule
                             qs += '&'+name+'='+encodeURIComponent(value);
                         }
                     });
-                    $('input[name^=purpose_other]').each(function(){
+                    $('input[type=checkbox][name^=purpose_other]').each(function(){
                         // research type checkboxes
-                        name = $(this).attr('name').replace('[','___').replace(']',''); // e.g. purpose_other[0] -> purpose_other___0
+                        name = $(this).attr('name').replace('purpose_other[','purpose_research___').replace(']',''); // e.g. purpose_other[0] -> purpose_research___0
                         if ($(this).is(':checked')) {
                             qs += '&'+name+'=1';
                         }
                     });
-                    $('input[name=project_template_radio]:checked input[name=copyof]:checked').each(function(){
+                    $('input[name=project_template_radio]:checked, input[name=copyof]:checked').each(function(){
                         // template option, template used
                         name = $(this).attr('name');
                         value = $(this).val();
                         qs += '&'+name+'='+value;
                     });
 
-                    if (checkForm()) { 
-                        showProgress(1); 
-                        //console.log(surveyUrl+qs);
+					if (setFieldsCreateFormChk()) { 
+                        showProgress(1);
                         openSurveyDialogIframe(surveyUrl+qs);
                     }; 
                     return false;
@@ -113,11 +132,11 @@ class ProjectTransitionSurveyTweaks extends AbstractExternalModule
         ?>
         <script type='text/javascript'>
             $(document).ready(function() {
-                //console.log("document ready");
-                $('form[name=createdb]').find('button.btn-primaryrc').eq(0).removeAttr('onclick');
-                $('form[name=createdb]').find('button.btn-primaryrc').eq(0).on('click', function() {
+                /* Project Transition Survey Tweaks JavaScript */
+                $('form[name=createdb]').find('button.btn-rcgreen').eq(0).removeAttr('onclick');
+                $('form[name=createdb]').find('button.btn-rcgreen').eq(0).on('click', function() {
                     //console.log("clicked");
-                    var surveyUrl = '<?=$surveyUrl?>';
+                    var surveyUrl = '<?=$surveyUrl?>&project_template_radio=3&copyof='+pid;
                     var qs = name = value = '';
                     $('form[name=createdb]').find('.x-form-field').each(function(){
                         // inputs/selects/textareas from form: add key/value pairs to query string
@@ -127,23 +146,24 @@ class ProjectTransitionSurveyTweaks extends AbstractExternalModule
                             qs += '&'+name+'='+encodeURIComponent(value);
                         }
                     });
-                    $('input[name^=purpose_other]').each(function(){
+                    $('input[type=checkbox][name^=purpose_other]').each(function(){
                         // research type checkboxes
-                        name = $(this).attr('name').replace('[','___').replace(']',''); // e.g. purpose_other[0] -> purpose_other___0
+                        name = $(this).attr('name').replace('purpose_other[','purpose_research___').replace(']',''); // e.g. purpose_other[0] -> purpose_research___0
                         if ($(this).is(':checked')) {
                             qs += '&'+name+'=1';
                         }
                     });
-                    $('input[name=project_template_radio]:checked input[name=copyof]:checked').each(function(){
-                        // template option, template used
-                        name = $(this).attr('name');
-                        value = $(this).val();
-                        qs += '&'+name+'='+value;
+                    $('input[type=checkbox][name^=copy_]').each(function(){
+                        // copy what checkboxes
+                        name = 'prop___'+$(this).attr('name'); // e.g. copy_records -> prop___copy_records
+                        if ($(this).is(':checked')) {
+                            qs += '&'+name+'=1';
+                        }
                     });
 
                     if (setFieldsCreateFormChk()) { 
                         showProgress(1); 
-                        //console.log(surveyUrl+qs);
+                        console.log(surveyUrl+qs);
                         openSurveyDialogIframe(surveyUrl+qs);
                     }; 
                     return false;
@@ -151,7 +171,6 @@ class ProjectTransitionSurveyTweaks extends AbstractExternalModule
             });
         </script>
         <?php
-
     }
 
     /**
@@ -159,7 +178,20 @@ class ProjectTransitionSurveyTweaks extends AbstractExternalModule
      * Add JavaScript to "Other Functionality" page to add entered values to "Mark Completed" survey query string.
      */
     protected function mark_completed($surveyUrl) { 
-
+        ?>
+        <script type='text/javascript'>
+            $(document).ready(function() {
+                /* 
+                    Project Transition Survey Tweaks JavaScript 
+                    Override the built-in survey launcher passing our survey link with additional parameters project_id and userid
+                */
+                var defaultOpenSurveyDialogIframe = openSurveyDialogIframe;
+                openSurveyDialogIframe = function() {
+                    defaultOpenSurveyDialogIframe('<?=$surveyUrl?>');
+                }
+            });
+        </script>
+        <?php
     }
     
     /**
@@ -167,7 +199,20 @@ class ProjectTransitionSurveyTweaks extends AbstractExternalModule
      * Add JavaScript to "Other Functionality" page to add entered values to "Move to Analysis" survey query string.
      */
     protected function move_to_analysis_status($surveyUrl) { 
-
+        ?>
+        <script type='text/javascript'>
+            $(document).ready(function() {
+                /* 
+                    Project Transition Survey Tweaks JavaScript 
+                    Override the built-in survey launcher passing our survey link with additional parameters project_id and userid
+                */
+                var defaultOpenSurveyDialogIframe = openSurveyDialogIframe;
+                openSurveyDialogIframe = function() {
+                    defaultOpenSurveyDialogIframe('<?=$surveyUrl?>');
+                }
+            });
+        </script>
+        <?php
     }
     
     /**
@@ -178,42 +223,14 @@ class ProjectTransitionSurveyTweaks extends AbstractExternalModule
         ?>
         <script type='text/javascript'>
             $(document).ready(function() {
-                ////console.log("document ready");
-               
-                $('form[name=createdb]').find('button.btn-primaryrc').eq(0).removeAttr('onclick');
-                $('form[name=createdb]').find('button.btn-primaryrc').eq(0).on('click', function() {
-                    ////console.log("clicked");
-                    var surveyUrl = '<?=$surveyUrl?>';
-                    var qs = name = value = '';
-                    $('form[name=createdb]').find('.x-form-field').each(function(){
-                        // inputs/selects/textareas from form: add key/value pairs to query string
-                        name = $(this).attr('name');
-                        value = $(this).val();
-                        if (value.trim()!=='') {
-                            qs += '&'+name+'='+encodeURIComponent(value);
-                        }
-                    });
-                    $('input[name^=purpose_other]').each(function(){
-                        // research type checkboxes
-                        name = $(this).attr('name').replace('[','___').replace(']',''); // e.g. purpose_other[0] -> purpose_other___0
-                        if ($(this).is(':checked')) {
-                            qs += '&'+name+'=1';
-                        }
-                    });
-                    $('input[name=project_template_radio]:checked input[name=copyof]:checked').each(function(){
-                        // template option, template used
-                        name = $(this).attr('name');
-                        value = $(this).val();
-                        qs += '&'+name+'='+value;
-                    });
-
-                    if (setFieldsCreateFormChk()) { 
-                        showProgress(1); 
-                        ////console.log(surveyUrl+qs);
-                        openSurveyDialogIframe(surveyUrl+qs);
-                    }; 
-                    return false;
-                });
+                /* 
+                    Project Transition Survey Tweaks JavaScript 
+                    Override the built-in survey launcher passing our survey link with additional parameters project_id and userid
+                */
+                var defaultOpenSurveyDialogIframe = openSurveyDialogIframe;
+                openSurveyDialogIframe = function() {
+                    defaultOpenSurveyDialogIframe('<?=$surveyUrl?>');
+                }
             });
         </script>
         <?php

@@ -3,6 +3,9 @@
     "description": "Uses survey pre-filling to capture data entered about project, title, purpose etc. in surveys used when creating/requesting a new project, copying a project, or changing the status of a project.",
     "namespace": "MCRI\\ProjectTransitionSurveyTweaks",
     "framework-version": 8,
+    "compatibility": {
+        "redcap-version-min": "11.1.1"
+    },
     "authors": [
         {
             "name": "Luke Stevens",
@@ -17,6 +20,12 @@
     ],
     "permissions": [ "redcap_every_page_top" ],
     "enable-every-page-hooks-on-system-pages": true,
-    "system-settings": [ ],
+    "system-settings": [                 
+        {
+            "key": "force-superuser",
+            "name": "Superusers see New/Copy Project surveys?<br><span class=\"text-muted\">Default REDCap behaviour is to not offer the transition surveys to superusers.</span>",
+            "type": "checkbox"
+        }
+    ],
     "project-settings": [ ]
 }
