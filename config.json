@@ -18,7 +18,6 @@
             "institution": "Murdoch Children's Research Institute"
         }
     ],
-    "permissions": [ "redcap_every_page_top" ],
     "enable-every-page-hooks-on-system-pages": true,
     "system-settings": [                 
         {
