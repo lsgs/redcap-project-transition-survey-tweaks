@@ -46,6 +46,8 @@ class ProjectTransitionSurveyTweaks extends AbstractExternalModule
      */
     protected function isNotRequired() {
         if (!defined('USERID')) return true;
+        if (USERID=='[survey_respondent]') return true;
+        if (defined('NOAUTH') && NOAUTH) return true;
         $user = $this->getUser();
         if (!isset($user)) return true;
         $super = $user->isSuperUser();
